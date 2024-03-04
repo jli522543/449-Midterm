@@ -3,6 +3,7 @@ import os
 from flask import Flask
 from . import db
 from . import auth
+from . import home
 
 def create_app(test_config=None):
     # create and configure the app
@@ -32,5 +33,8 @@ def create_app(test_config=None):
     @app.route('/hello')
     def hello():
         return 'Hello, World!'
+    
+    app.register_blueprint(home.bp)
+    app.add_url_rule('/', endpoint='index')
 
     return app
