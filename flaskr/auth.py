@@ -75,7 +75,7 @@ def login():
 @bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('index'))
+    return redirect(url_for('auth.login'))
 
 def login_required(view):
     @functools.wraps(view)
@@ -86,3 +86,12 @@ def login_required(view):
         return view(**kwargs)
 
     return wrapped_view
+
+@bp.route('/delete', methods=['GET', 'POST'])
+@login_required
+def delete():
+    user_id = session.get('user_id')
+    db = get_db()
+    db.execute('DELETE FROM user WHERE id = ?', [user_id])
+    db.commit()
+    return redirect(url_for('auth.register'))
