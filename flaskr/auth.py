@@ -95,3 +95,17 @@ def delete():
     db.execute('DELETE FROM user WHERE id = ?', [user_id])
     db.commit()
     return redirect(url_for('auth.register'))
+
+@bp.route('/changeUserInfo', methods=('GET', 'POST'))
+def changeUserInfo():
+    if request.method == 'POST':
+        user_id = session.get('user_id')
+        newUsername = request.form['changeUsername']
+        newPassword = request.form['changePassword']
+        db = get_db()
+        db.execute(
+            'UPDATE user SET username = ?, password = ? WHERE id = ? ', (newUsername, generate_password_hash(newPassword), user_id)
+        )
+        db.commit()
+    
+    return render_template('auth/changeUserInfo.html')
