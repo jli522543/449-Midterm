@@ -94,7 +94,7 @@ def delete():
     db = get_db()
     db.execute('DELETE FROM user WHERE id = ?', [user_id])
     db.commit()
-    return redirect(url_for('auth.register'))
+    return redirect(url_for('auth.login'))
 
 @bp.route('/changeUserInfo', methods=('GET', 'POST'))
 def changeUserInfo():

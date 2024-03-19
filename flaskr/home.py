@@ -8,14 +8,18 @@ from flaskr.db import get_db
 
 bp = Blueprint('home', __name__)
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    db = get_db()
-    products = db.execute(
-        'SELECT id, name, price FROM product'
-    ).fetchall()
-    return render_template('home/index.html', products=products)
+    if request.method == 'POST':
+        query = "/filter_products?name=" + request.form['query']
+        return redirect(query)
+    else:
+        db = get_db()
+        products = db.execute(
+            'SELECT id, name, price FROM product'
+        ).fetchall()
+        return render_template('home/index.html', products=products)
 
 #query of product by name
 @bp.route('/filter_products', methods=['GET'])
@@ -31,7 +35,7 @@ def filter_products():
         'SELECT id, name, price FROM product WHERE name = ?', [name]
     ).fetchall()
 
-    return render_template('home/index.html', products=filtered_products)
+    return render_template('home/product.html', products=filtered_products)
 
 #add new product to database using JSON request
 @bp.route('/upload_new_product', methods=['POST'])
