@@ -97,6 +97,7 @@ def delete():
     return redirect(url_for('auth.login'))
 
 @bp.route('/changeUserInfo', methods=('GET', 'POST'))
+@login_required
 def changeUserInfo():
     if request.method == 'POST':
         user_id = session.get('user_id')
