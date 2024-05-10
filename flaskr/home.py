@@ -2,14 +2,15 @@ from flask import (
     Blueprint, redirect, render_template, request, jsonify
 )
 
-from flaskr.auth import login_required
+from flaskr.auth import token_required
 from flaskr.db import get_db
 
 bp = Blueprint('home', __name__)
 
 @bp.route('/', methods=['GET', 'POST'])
-@login_required
+@token_required
 def index():
+    saved_name = request.cookies.get("profileName")
     if request.method == 'POST':
         query = "/filter_products?name=" + request.form['query']
         return redirect(query)
@@ -18,11 +19,11 @@ def index():
         products = db.execute(
             'SELECT id, name, price FROM product'
         ).fetchall()
-        return render_template('home/index.html', products=products)
+        return render_template('home/index.html', products=products, profileName=saved_name)
 
 #query of product by name
 @bp.route('/filter_products', methods=['GET'])
-@login_required
+@token_required
 def filter_products():
     name = request.args.get('name')
 
@@ -64,7 +65,7 @@ def upload_new_product():
 
 #get user record with username/user ID
 @bp.route('/user/<identifier>', methods=['GET'])
-@login_required
+@token_required
 def get_user(identifier):
     db = get_db()
     user = db.execute(
@@ -76,4 +77,3 @@ def get_user(identifier):
         return jsonify({'Error': 'User not found'}), 404
 
     return render_template('home/user.html', user=user)
-

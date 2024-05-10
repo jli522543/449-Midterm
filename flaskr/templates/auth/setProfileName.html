@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Set Profile Name{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+{% if error %}
+<p>{{ error }}</p>
+{% endif %}
+<form method="post">
+    <label for="profileName">New Profile Name</label>
+    <input name="profileName" id="profileName">
+    <input type="submit" value="Save">
+</form>
+
+{% endblock %}

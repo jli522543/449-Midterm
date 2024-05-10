@@ -1,11 +1,33 @@
 import functools
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for
+    Flask, Blueprint, flash, g, redirect, render_template, request, session, url_for, make_response, jsonify, current_app, make_response
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 from flaskr.db import get_db
+import jwt
+import datetime
+from functools import wraps
 
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'CSUFTitans1957'
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = session.get('token')
+        if not token:
+            return jsonify({'message':'Token is missing!'}), 403
+        try:
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message':'Token is expired'}), 403
+        except jwt.InvalidTokenError:
+            return jsonify({'message':'Invalid token'}), 403
+
+        return f(*args, **kwargs)
+
+    return decorated
 
 @bp.before_app_request
 def load_logged_in_user():
@@ -26,24 +48,31 @@ def register():
         db = get_db()
         error = None
 
-        if not username:
+        ##error handling - checks if username or password is empty
+        if not username and not password:
+            error = 'Username and password are required.'
+        elif not username:
             error = 'Username is required.'
         elif not password:
             error = 'Password is required.'
+        if error:
+            response = make_response(render_template('auth/register.html', error=error))
+            response.status_code = 400
+            return response
 
-        if error is None:
-            try:
-                db.execute(
-                    "INSERT INTO user (username, password) VALUES (?, ?)",
-                    (username, generate_password_hash(password)),
-                )
-                db.commit()
-            except db.IntegrityError:
-                error = f"User {username} is already registered."
-            else:
-                return redirect(url_for("auth.login"))
-
-        flash(error)
+        try:
+            db.execute(
+                "INSERT INTO user (username, password) VALUES (?, ?)",
+                (username, generate_password_hash(password)),
+            )
+            db.commit()
+        except db.IntegrityError:
+            error = f"User {username} is already registered."
+            response = make_response(render_template('auth/register.html', error=error))
+            response.status_code = 409
+            return response
+        else:
+            return redirect(url_for("auth.login"))
 
     return render_template('auth/register.html')
 
@@ -54,41 +83,52 @@ def login():
         password = request.form['password']
         db = get_db()
         error = None
+
+        ##error handling - checks if username or password is empty
+        if not username and not password:
+            error = 'Username and password are required.'
+        elif not username:
+            error = 'Username is required.'
+        elif not password:
+            error = 'Password is required.'
+        if error:
+            response = make_response(render_template('auth/login.html', error=error))
+            response.status_code = 400
+            return response
+        
         user = db.execute(
             'SELECT * FROM user WHERE username = ?', (username,)
         ).fetchone()
 
         if user is None:
             error = 'Incorrect username.'
+            
         elif not check_password_hash(user['password'], password):
             error = 'Incorrect password.'
 
-        if error is None:
-            session.clear()
-            session['user_id'] = user['id']
-            return redirect(url_for('index'))
+        if error is not None:
+            response = make_response(render_template('auth/login.html', error=error))
+            response.status_code = 401
+            return response
 
-        flash(error)
+        session.clear()
+        session['user_id'] = user['id']
+        token = jwt.encode({'user': username, 'exp': datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(minutes=30)}, current_app.config['SECRET_KEY'])
+        session['token'] = token
+        return redirect(url_for('index'))
 
     return render_template('auth/login.html')
 
 @bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('auth.login'))
-
-def login_required(view):
-    @functools.wraps(view)
-    def wrapped_view(**kwargs):
-        if g.user is None:
-            return redirect(url_for('auth.login'))
-
-        return view(**kwargs)
-
-    return wrapped_view
+    ##delete the cookies as well
+    redirect_to_login = redirect(url_for('auth.login'))
+    redirect_to_login.set_cookie("profileName", "", expires=0)
+    return redirect_to_login
 
 @bp.route('/delete', methods=['GET', 'POST'])
-@login_required
+@token_required
 def delete():
     user_id = session.get('user_id')
     db = get_db()
@@ -97,7 +137,7 @@ def delete():
     return redirect(url_for('auth.login'))
 
 @bp.route('/changeUserInfo', methods=('GET', 'POST'))
-@login_required
+@token_required
 def changeUserInfo():
     if request.method == 'POST':
         user_id = session.get('user_id')
@@ -110,3 +150,21 @@ def changeUserInfo():
         db.commit()
     
     return render_template('auth/changeUserInfo.html')
+
+@bp.route('/setProfileName', methods=('GET', 'POST'))
+@token_required
+def setProfileName():
+    if request.method == 'POST':
+        error = None
+        newProfile = request.form['profileName']
+        if newProfile:
+            redirect_to_index = redirect(url_for('home.index'))
+            redirect_to_index.set_cookie("profileName", newProfile)
+            return redirect_to_index
+        else:
+            error = "Profile name not provided."
+            response = make_response(render_template('auth/setProfileName.html', error=error))
+            response.status_code = 400
+            return response
+        
+    return render_template('auth/setProfileName.html')

@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 
 {% block header %}
+{% if profileName %}
+<h1>Hello {{ profileName }}!</h1>
+{% else %}
+<h1>Hello!</h1>
+{% endif %}
 <h1>{% block title %}Product List{% endblock %}</h1>
 {% endblock %}
 
