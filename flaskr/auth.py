@@ -7,10 +7,14 @@ from flaskr.db import get_db
 import jwt
 import datetime
 from functools import wraps
+from bson import ObjectId
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'CSUFTitans1957'
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+# Check if the username already exists
+def is_username_unique(username):
+    db = get_db()
+    return db.users.count_documents({"username": username}) == 0
 
 def token_required(f):
     @wraps(f)
@@ -32,13 +36,12 @@ def token_required(f):
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
-
     if user_id is None:
         g.user = None
     else:
-        g.user = get_db().execute(
-            'SELECT * FROM user WHERE id = ?', (user_id,)
-        ).fetchone()
+        g.user = get_db().users.find_one({"_id": ObjectId(user_id)})
+        print(g.user)
+        print('hi')
 
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
@@ -59,21 +62,19 @@ def register():
             response = make_response(render_template('auth/register.html', error=error))
             response.status_code = 400
             return response
-
-        try:
-            db.execute(
-                "INSERT INTO user (username, password) VALUES (?, ?)",
-                (username, generate_password_hash(password)),
-            )
-            db.commit()
-        except db.IntegrityError:
+        document = {
+            "username": username,
+            "password": generate_password_hash(password)
+        }
+        if is_username_unique(document["username"]):
+            db.users.insert_one(document)
+            return redirect(url_for("auth.login"))
+        else:
             error = f"User {username} is already registered."
             response = make_response(render_template('auth/register.html', error=error))
             response.status_code = 409
             return response
-        else:
-            return redirect(url_for("auth.login"))
-
+            
     return render_template('auth/register.html')
 
 @bp.route('/login', methods=('GET', 'POST'))
@@ -96,9 +97,7 @@ def login():
             response.status_code = 400
             return response
         
-        user = db.execute(
-            'SELECT * FROM user WHERE username = ?', (username,)
-        ).fetchone()
+        user = db.users.find_one({"username": username})
 
         if user is None:
             error = 'Incorrect username.'
@@ -112,7 +111,7 @@ def login():
             return response
 
         session.clear()
-        session['user_id'] = user['id']
+        session['user_id'] = str(user['_id'])
         token = jwt.encode({'user': username, 'exp': datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(minutes=30)}, current_app.config['SECRET_KEY'])
         session['token'] = token
         return redirect(url_for('index'))
@@ -132,8 +131,7 @@ def logout():
 def delete():
     user_id = session.get('user_id')
     db = get_db()
-    db.execute('DELETE FROM user WHERE id = ?', [user_id])
-    db.commit()
+    db.users.delete_one({"_id": user_id})
     return redirect(url_for('auth.login'))
 
 @bp.route('/changeUserInfo', methods=('GET', 'POST'))
@@ -144,6 +142,7 @@ def changeUserInfo():
         newUsername = request.form['changeUsername']
         newPassword = request.form['changePassword']
         db = get_db()
+        db.users.update_one({"_id": user_id}, {"$set": {"username": newUsername, "password": generate_password_hash(newPassword)}})
         db.execute(
             'UPDATE user SET username = ?, password = ? WHERE id = ? ', (newUsername, generate_password_hash(newPassword), user_id)
         )
