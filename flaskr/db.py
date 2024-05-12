@@ -1,11 +1,12 @@
 import click
 import pymongo
 from flask import current_app, g
+import certifi
 
 def get_db():
     if 'db' not in g:
-        CONNECTION_STRING = ""
-        client = pymongo.MongoClient(CONNECTION_STRING) 
+        CONNECTION_STRING = "mongodb+srv://jli306:9eW=0isi@cluster0.lwxzmvr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+        client = pymongo.MongoClient(CONNECTION_STRING, tlsCAFile=certifi.where()) 
         db = client.get_database('449')
         g.db = db
     return g.db
