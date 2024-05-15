@@ -131,8 +131,10 @@ def logout():
 def delete():
     user_id = session.get('user_id')
     db = get_db()
-    db.users.delete_one({"_id": ObjectId(user_id)})
-    return redirect(url_for('auth.login'))
+    if(db.users.delete_one({"_id": ObjectId(user_id)})):
+        return redirect(url_for('auth.logout'))
+    return jsonify({'message':'Something went wrong on our end'}), 500
+    
 
 @bp.route('/changeUserInfo', methods=('GET', 'POST'))
 @token_required
@@ -141,8 +143,23 @@ def changeUserInfo():
         user_id = session.get('user_id')
         newUsername = request.form['changeUsername']
         newPassword = request.form['changePassword']
+        error = None
+        ##error handling - checks if username or password is empty
+        if not newUsername and not newPassword:
+            error = 'Username and password are required.'
+        elif not newUsername:
+            error = 'Username is required.'
+        elif not newPassword:
+            error = 'Password is required.'
+        if error:
+            response = make_response(render_template('auth/changeUserInfo.html', error=error))
+            response.status_code = 400
+            return response
+        
         db = get_db()
-        db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"username": newUsername, "password": generate_password_hash(newPassword)}})
+        if(db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"username": newUsername, "password": generate_password_hash(newPassword)}})):
+            return redirect(url_for('home.index'))
+        return jsonify({'message':'Something went wrong on our end'}), 500
 
     return render_template('auth/changeUserInfo.html')
 
