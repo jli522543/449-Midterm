@@ -131,7 +131,7 @@ def logout():
 def delete():
     user_id = session.get('user_id')
     db = get_db()
-    db.users.delete_one({"_id": user_id})
+    db.users.delete_one({"_id": ObjectId(user_id)})
     return redirect(url_for('auth.login'))
 
 @bp.route('/changeUserInfo', methods=('GET', 'POST'))
