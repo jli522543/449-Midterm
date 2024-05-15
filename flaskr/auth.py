@@ -142,12 +142,8 @@ def changeUserInfo():
         newUsername = request.form['changeUsername']
         newPassword = request.form['changePassword']
         db = get_db()
-        db.users.update_one({"_id": user_id}, {"$set": {"username": newUsername, "password": generate_password_hash(newPassword)}})
-        db.execute(
-            'UPDATE user SET username = ?, password = ? WHERE id = ? ', (newUsername, generate_password_hash(newPassword), user_id)
-        )
-        db.commit()
-    
+        db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"username": newUsername, "password": generate_password_hash(newPassword)}})
+
     return render_template('auth/changeUserInfo.html')
 
 @bp.route('/setProfileName', methods=('GET', 'POST'))
