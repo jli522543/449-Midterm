@@ -5,7 +5,7 @@ import certifi
 
 def get_db():
     if 'db' not in g:
-        CONNECTION_STRING = "mongodb+srv://wsutanto:449final@atlascluster.zor9jkf.mongodb.net/"
+        CONNECTION_STRING = "mongodb+srv://jli306:9eW=0isi@cluster0.lwxzmvr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
         client = pymongo.MongoClient(CONNECTION_STRING, tlsCAFile=certifi.where()) 
         db = client.get_database('449')
         g.db = db

@@ -8,13 +8,20 @@ import jwt
 import datetime
 from functools import wraps
 from bson import ObjectId
+from werkzeug.utils import secure_filename
+import os
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 # Check if the username already exists
 def is_username_unique(username):
     db = get_db()
     return db.users.count_documents({"username": username}) == 0
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def token_required(f):
     @wraps(f)
@@ -180,3 +187,30 @@ def setProfileName():
             return response
         
     return render_template('auth/setProfileName.html')
+
+@bp.route('/uploadFile', methods=('GET', 'POST'))
+@token_required
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('home.index', name=filename))
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>'''
