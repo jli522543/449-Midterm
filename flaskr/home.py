@@ -68,16 +68,13 @@ def upload_new_product():
         Product price: {}'''.format(name, price)
 
 # get user record with username/user ID
-# @bp.route('/user/<identifier>', methods=['GET'])
-# @token_required
-# def get_user(identifier):
-#     db = get_db()
-#     user = db.execute(
-#         'SELECT * FROM user WHERE id = ? OR username = ?',
-#         (identifier, identifier)
-#     ).fetchone()
+@bp.route('/user/<identifier>', methods=['GET'])
+@token_required
+def get_user(identifier):
+    db = get_db()
+    user = db.users.find_one({"$or": [{"id": identifier}, {"username": identifier}]})
 
-#     if user is None:
-#         return jsonify({'Error': 'User not found'}), 404
+    if user is None:
+        return jsonify({'Error': 'User not found'}), 404
 
-#     return render_template('home/user.html', user=user)
+    return render_template('home/user.html', user=user)
