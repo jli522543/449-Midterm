@@ -1,5 +1,5 @@
 from flask import (
-    Blueprint, redirect, render_template, request, jsonify
+    Blueprint, redirect, render_template, request, jsonify,url_for
 )
 
 from flaskr.auth import token_required
@@ -20,7 +20,7 @@ def index():
         # products = db.execute(
         #     'SELECT id, name, price FROM product'
         # ).fetchall()
-        return render_template('home/index.html', products=products, profileName=saved_name)
+        return render_template('home/index.html', products=products, profileName=saved_name, profile_picture='../../static/profile_picture.jpg')
 
 # query of product by name
 @bp.route('/filter_products', methods=['GET'])

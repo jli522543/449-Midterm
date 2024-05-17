@@ -9,7 +9,7 @@ def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config['SECRET_KEY'] = 'CSUFTitans1957'
-    UPLOAD_FOLDER = 'flaskr/uploads'
+    UPLOAD_FOLDER = 'flaskr/static'
 
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.register_blueprint(auth.bp)

@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 import os
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 # Check if the username already exists
 def is_username_unique(username):
@@ -194,17 +194,15 @@ def upload_file():
     if request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
-            flash('No file part')
             return redirect(request.url)
         file = request.files['file']
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
         if file.filename == '':
-            flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], 'profile_picture.jpg'))
             return redirect(url_for('home.index', name=filename))
     return '''
     <!doctype html>
